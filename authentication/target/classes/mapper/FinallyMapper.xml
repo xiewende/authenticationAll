@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.course.authentication.mapper.FinallyMapper">
+
+    <resultMap id="mypersonaldachengdu" type="com.course.authentication.pojo.PersonalDachengdu" >
+        <result column="target_num" property="targetNum"  />
+        <result column="dachengdu" property="dachengdu" jdbcType="DOUBLE" />
+        <result column="ispass" property="ispass" />
+    </resultMap>
+
+    <resultMap id="mytotaldachengdu" type="com.course.authentication.pojo.Totaldachengdu" >
+        <result column="target_num" property="targetNum"  />
+        <result column="actual_total" property="actualTotal" jdbcType="DOUBLE" />
+        <result column="des_total" property="desTotal" jdbcType="DOUBLE" />
+        <result column="res" property="res" jdbcType="DOUBLE" />
+    </resultMap>
+
+    <resultMap id="mygraduationDachengdu" type="com.course.authentication.pojo.GraduationDachengdu" >
+        <result column="idc_num" property="idcNum"  />
+        <result column="graduationDachengdu" property="graduateDachengdu" jdbcType="DOUBLE" />
+    </resultMap>
+
+    <select id="checkGraduationDachengdu" resultMap="mygraduationDachengdu">
+        SELECT tablej.idc_num, SUM(tablej.course_da) AS graduationDachengdu
+        FROM
+        (
+            SELECT tableh.idc_num AS idc_num, tableh.cour_name, SUM(tableh.mid_da) AS course_da
+            FROM
+            (
+                SELECT idc.indication_num AS idc_num, tar.targer_num AS target_num, tableg.cour_id AS cour_id, tableg.cour_name AS cour_name, tableg.res, ti.support, ic.weight, CONVERT((support * weight * res), DECIMAL(10, 3)) AS mid_da
+                FROM indication idc, target tar, target_indication ti, indication_course ic,
+                (
+                    SELECT tableq.cour_id AS cour_id, tableq.cour_name AS cour_name, tableq.target_num AS target_num, tableq.actual_total, tabler.des_total, CONVERT((tableq.actual_total / tabler.des_total), DECIMAL(10, 2)) res, tableq.version AS VERSION
+                    FROM
+                    (
+                        SELECT table1.cour_id, table1.cour_name, table1.target_num target_num, CONVERT(SUM(result), DECIMAL(10, 2)) AS actual_total, table1.version AS VERSION
+                        FROM
+                        (
+                            SELECT et.id AS et_id, cour.id AS cour_id, cour.name AS cour_name,  tar.targer_num AS target_num,  (CASE WHEN (ed.score IS NULL) THEN AVG(scores * ed.weight) ELSE AVG(scores) END) * ex.ratio AS result, ed.version AS VERSION
+                            FROM score sc, examdetail ed, examtype et, selcourse sl, course cour, exam ex, target tar
+                            WHERE sl.course_id = cour.id
+                            AND sc.selcourse_id = sl.id
+                            AND ed.examtype_id = et.id
+                            AND ex.examtype_id = et.id
+                            AND ex.course_id = cour.id
+                            AND ed.target_id = tar.id
+                            AND ed.version = sl.version
+                            AND ed.version = ex.version
+                            AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+                            AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(tar.version AS SIGNED) / 4)
+                            AND ed.version = #{version}
+                            AND ed.id = sc.examdetail_id
+                            GROUP BY cour.id, ed.id
+                        ) AS table1
+                        GROUP BY target_num, table1.cour_name
+                    ) AS tableq,
+                    (
+                        SELECT table2.cour_id, table2.cour_name AS cour_name, table2.target_num AS target_num, CONVERT(SUM(result), DECIMAL(10, 2)) AS des_total, table2.version AS VERSION
+                        FROM
+                        (
+                            SELECT ed.name, cour.id AS cour_id, cour.name AS cour_name, tar.targer_num AS target_num, CONVERT(((CASE WHEN ed.score IS NULL THEN ed.weight*100 ELSE ed.score END) * ex.ratio), DECIMAL(10, 2)) AS result, ed.version AS VERSION
+                            FROM examdetail ed, target tar, examtype et, exam ex, course cour
+                            WHERE ed.examtype_id = et.id
+                            AND et.id = ex.examtype_id
+                            AND ed.target_id = tar.id
+                            AND ex.course_id = cour.id
+                            AND tar.course_id = ex.course_id
+                            AND ed.version = ex.version
+                            AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+                            AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(tar.version AS SIGNED) / 4)
+                            AND ed.version = #{version}
+                        ) AS table2
+                        GROUP BY table2.target_num, table2.cour_name
+                    ) AS tabler
+                    WHERE tableq.target_num = tabler.target_num
+                    AND tableq.cour_name = tabler.cour_name
+                    AND tableq.version = tabler.version
+                ) AS tableg
+                WHERE ti.indication_id = idc.id
+                AND ti.target_id = tar.id
+                AND ic.indication_id = idc.id
+                AND tar.course_id = ic.course_id
+                AND tableg.target_num = tar.targer_num
+                AND FLOOR(CAST(tableg.version AS SIGNED) / 4) = FLOOR(CAST(ti.version AS SIGNED) / 4)
+            ) AS tableh
+            GROUP BY cour_name, idc_num
+            ORDER BY cour_name DESC
+        ) AS tablej
+        GROUP BY tablej.idc_num;
+    </select>
+
+
+
+
+    <select id="checkPersonalDachengdu" resultMap="mypersonaldachengdu">
+        SELECT tablep.target_num, CONVERT(tablep.pass_count / tablep.total_count, DECIMAL(10, 2)) AS dachengdu, (tablep.pass_count / tablep.total_count) > 0.6 AS ispass
+        FROM
+        (
+         SELECT tableo.targer_num AS target_num, COUNT(tableo.res > tableo.des_threshold) AS pass_count, COUNT(tableo.des_threshold) AS total_count
+         FROM
+         (
+          SELECT tar.targer_num, stu.id AS stu_id, ed.name, CONVERT(SUM((CASE WHEN ed.score IS NULL THEN sc.scores * ed.weight ELSE sc.scores END) * ex.ratio), DECIMAL(10, 2)) AS res, tablei.des_threshold
+          FROM score sc, selcourse sl, course cour, student stu, examdetail ed, target tar, exam ex, examtype et,
+          (
+           SELECT table2.target_num AS targer_num , CONVERT((SUM(result) * 0.6), DECIMAL(10, 2)) AS des_threshold
+           FROM
+           (
+            SELECT ed.name, cour.name AS cour_name, tar.targer_num AS target_num, CONVERT(((CASE WHEN ed.score IS NULL THEN ed.weight*100 ELSE ed.score END) * ex.ratio), DECIMAL(10, 2)) AS result
+            FROM examdetail ed, target tar, examtype et, exam ex, course cour
+            WHERE ed.examtype_id = et.id
+            AND et.id = ex.examtype_id
+            AND ed.target_id = tar.id
+            AND ex.course_id = cour.id
+            AND tar.course_id = ex.course_id
+            AND cour.name = #{courseName}
+                        AND ed.version = ex.version
+                        AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(tar.version AS SIGNED) / 4)
+                        AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+            AND ed.version = #{version}
+           ) AS table2
+           GROUP BY table2.target_num
+          ) AS tablei
+          WHERE sc.selcourse_id = sl.id
+          AND sc.examdetail_id = ed.id
+          AND sl.course_id = cour.id
+          AND cour.name = #{courseName}
+          AND sl.student_id = stu.id
+          AND ed.target_id = tar.id
+          AND ed.examtype_id = et.id
+          AND et.id = ex.examtype_id
+          AND ex.course_id = cour.id
+          AND tar.targer_num = tablei.targer_num
+          GROUP BY targer_num, stu.id
+         ) AS tableo
+         GROUP BY tableo.targer_num
+        ) AS tablep;
+
+    </select>
+
+    <select id="checkTotaldachengdu" resultMap="mytotaldachengdu">
+               SELECT tableq.target_num, tableq.actual_total, tabler.des_total, CONVERT((tableq.actual_total / tabler.des_total), DECIMAL(10, 2)) res FROM
+        (
+         SELECT table1.target_num target_num, CONVERT(SUM(result), DECIMAL(10, 2)) AS actual_total
+         FROM
+            (
+          SELECT et.id, tar.targer_num AS target_num,  (CASE WHEN (ed.score IS NULL) THEN AVG(scores * ed.weight) ELSE AVG(scores) END) * ex.ratio AS result
+          FROM score sc, examdetail ed, examtype et, selcourse sl, course cour, exam ex, target tar
+          WHERE sl.course_id = cour.id
+          AND sc.selcourse_id = sl.id
+          AND cour.name = #{courseName}
+          AND ed.examtype_id = et.id
+          AND ex.examtype_id = et.id
+          AND ex.course_id = cour.id
+          AND ed.target_id = tar.id
+                AND ed.version = sl.version
+                AND ed.version = ex.version
+                AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(tar.version AS SIGNED) / 4)
+                AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+          AND ed.version = #{version}
+          AND ed.id = sc.examdetail_id
+          GROUP BY ed.id
+            ) AS table1
+         GROUP BY target_num
+        ) AS tableq,
+        (
+         SELECT table2.target_num , CONVERT(SUM(result), DECIMAL(10, 2)) AS des_total, table2.cour_name
+         FROM
+         (
+          SELECT ed.name, cour.name AS cour_name, tar.targer_num AS target_num, CONVERT(((CASE WHEN ed.score IS NULL THEN ed.weight*100 ELSE ed.score END) * ex.ratio), DECIMAL(10, 2)) AS result
+          FROM examdetail ed, target tar, examtype et, exam ex, course cour
+          WHERE ed.examtype_id = et.id
+          AND et.id = ex.examtype_id
+          AND ed.target_id = tar.id
+          AND ex.course_id = cour.id
+          AND tar.course_id = ex.course_id
+          AND cour.name =#{courseName}
+                AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+                AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(tar.version AS SIGNED) / 4)
+                AND ed.version = ex.version
+          AND ed.version = #{version}
+         ) AS table2
+         GROUP BY table2.target_num
+        ) AS tabler
+        WHERE tableq.target_num = tabler.target_num;
+    </select>
+
+</mapper>
+

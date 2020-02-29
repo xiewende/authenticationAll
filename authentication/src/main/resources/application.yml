@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    #   数据源基本配置  authenticationsecond
+    username: root
+    #password: 0751@@@wjw
+    password: 990302
+    driver-class-name: com.mysql.jdbc.Driver
+    #url: jdbc:mysql://192.168.1.101:3306/authentication?characterEncoding=utf-8&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/authentication?characterEncoding=utf-8&serverTimezone=UTC
+    type: com.alibaba.druid.pool.DruidDataSource
+    #   数据源其他配置
+    initialSize: 5
+    minIdle: 5
+    maxActive: 20
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+    filters: stat,wall,log4j
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+
+mybatis:
+  mapper-locations: "classpath:mapper/*.xml"
+
+#分页插件配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+

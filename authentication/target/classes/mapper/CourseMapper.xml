@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.course.authentication.mapper.CourseMapper" >
+  <resultMap id="BaseResultMap" type="com.course.authentication.pojo.Course" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="course_num" property="courseNum" jdbcType="CHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="theory_time" property="theoryTime" jdbcType="INTEGER" />
+    <result column="exper_time" property="experTime" jdbcType="INTEGER" />
+    <result column="credit" property="credit" jdbcType="DOUBLE" />
+    <result column="type" property="type" jdbcType="VARCHAR" />
+    <result column="property" property="property" jdbcType="VARCHAR" />
+    <result column="version" property="version" jdbcType="CHAR" />
+    <result column="teacher_id" property="teacherId" jdbcType="INTEGER" />
+  </resultMap>
+
+  <resultMap id="mylist" type="com.course.authentication.pojo.Course" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="course_num" property="courseNum" jdbcType="CHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="theory_time" property="theoryTime" jdbcType="INTEGER" />
+    <result column="exper_time" property="experTime" jdbcType="INTEGER" />
+    <result column="credit" property="credit" jdbcType="DOUBLE" />
+    <result column="type" property="type" jdbcType="VARCHAR" />
+    <result column="property" property="property" jdbcType="VARCHAR" />
+    <result column="version" property="version" jdbcType="CHAR" />
+    <result column="teacher_id" property="teacherId" jdbcType="INTEGER" />
+    <association property="teacher" javaType="com.course.authentication.pojo.Teacher">
+      <id column="tid" property="id" jdbcType="INTEGER" />
+      <result column="teacher_num" property="teacherNum" jdbcType="CHAR" />
+      <result column="tname" property="name" jdbcType="VARCHAR" />
+      <result column="password" property="password" jdbcType="VARCHAR" />
+      <result column="status" property="status" jdbcType="CHAR" />
+      <result column="role_id" property="roleId" jdbcType="INTEGER" />
+      <association property="role" javaType="com.course.authentication.pojo.Role">
+        <id column="rid" property="id" jdbcType="INTEGER" />
+        <result column="rname" property="name" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+      </association>
+    </association>
+  </resultMap>
+
+  <resultMap id="MyListStudent" type="com.course.authentication.pojo.Student" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="student_num" property="studentNum" jdbcType="CHAR" />
+    <result column="name" property="name" jdbcType="VARCHAR" />
+    <result column="major" property="major" jdbcType="VARCHAR" />
+    <result column="class_name" property="className" jdbcType="VARCHAR" />
+    <result column="grade" property="grade" jdbcType="VARCHAR" />
+  </resultMap>
+  <select id="listStudentByCourse" resultMap="MyListStudent">
+     select stu.*
+     from selcourse sl, student stu, course cour
+     where stu.id = sl.student_id and sl.version =#{version} and sl.course_id = cour.id and cour.name = #{courseName};
+  </select>
+
+  <select id="listExamdetailByCourse" resultType="string">
+         SELECT ed.name
+        FROM examdetail ed, exam ex, examtype et, course cour
+        WHERE ed.examtype_id = et.id
+        AND ex.examtype_id = et.id
+        AND ex.course_id = cour.id
+        AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(ex.version AS SIGNED) / 4)
+        AND FLOOR(CAST(ed.version AS SIGNED) / 4) = FLOOR(CAST(cour.version AS SIGNED) / 4)
+        AND ed.version = #{version}
+        AND cour.name = #{courseName};
+  </select>
+
+
+  <select id="listCourseByVersion" resultMap="mylist" >
+    select c.*,t.id tid,t.teacher_num,t.name tname,t.password,t.status,t.role_id,r.id rid,r.name rname,r.description from course c,teacher t,role r where c.teacher_id=t.id and t.role_id=r.id and version=#{version}
+  </select>
+
+  <select id="listCourseNoByVersion" resultMap="mylist" >
+    select c.*,t.id tid,t.teacher_num,t.name tname,t.password,t.status,t.role_id,r.id rid,r.name rname,r.description from course c,teacher t,role r where c.teacher_id=t.id and t.role_id=r.id
+  </select>
+
+  <sql id="Example_Where_Clause" >
+    <where >
+      <foreach collection="oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause" >
+    <where >
+      <foreach collection="example.oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List" >
+    id, course_num, name, theory_time, exper_time, credit, type, property, version, teacher_id
+  </sql>
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="com.course.authentication.pojo.CourseExample" >
+    select
+    <if test="distinct" >
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from course
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null" >
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from course
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from course
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.course.authentication.pojo.CourseExample" >
+    delete from course
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.course.authentication.pojo.Course" >
+    insert into course (id, course_num, name, 
+      theory_time, exper_time, credit, 
+      type, property, version, 
+      teacher_id)
+    values (#{id,jdbcType=INTEGER}, #{courseNum,jdbcType=CHAR}, #{name,jdbcType=VARCHAR}, 
+      #{theoryTime,jdbcType=INTEGER}, #{experTime,jdbcType=INTEGER}, #{credit,jdbcType=DOUBLE}, 
+      #{type,jdbcType=VARCHAR}, #{property,jdbcType=VARCHAR}, #{version,jdbcType=CHAR}, 
+      #{teacherId,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" parameterType="com.course.authentication.pojo.Course" >
+    insert into course
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="courseNum != null" >
+        course_num,
+      </if>
+      <if test="name != null" >
+        name,
+      </if>
+      <if test="theoryTime != null" >
+        theory_time,
+      </if>
+      <if test="experTime != null" >
+        exper_time,
+      </if>
+      <if test="credit != null" >
+        credit,
+      </if>
+      <if test="type != null" >
+        type,
+      </if>
+      <if test="property != null" >
+        property,
+      </if>
+      <if test="version != null" >
+        version,
+      </if>
+      <if test="teacherId != null" >
+        teacher_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="courseNum != null" >
+        #{courseNum,jdbcType=CHAR},
+      </if>
+      <if test="name != null" >
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="theoryTime != null" >
+        #{theoryTime,jdbcType=INTEGER},
+      </if>
+      <if test="experTime != null" >
+        #{experTime,jdbcType=INTEGER},
+      </if>
+      <if test="credit != null" >
+        #{credit,jdbcType=DOUBLE},
+      </if>
+      <if test="type != null" >
+        #{type,jdbcType=VARCHAR},
+      </if>
+      <if test="property != null" >
+        #{property,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null" >
+        #{version,jdbcType=CHAR},
+      </if>
+      <if test="teacherId != null" >
+        #{teacherId,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.course.authentication.pojo.CourseExample" resultType="java.lang.Integer" >
+    select count(*) from course
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map" >
+    update course
+    <set >
+      <if test="record.id != null" >
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.courseNum != null" >
+        course_num = #{record.courseNum,jdbcType=CHAR},
+      </if>
+      <if test="record.name != null" >
+        name = #{record.name,jdbcType=VARCHAR},
+      </if>
+      <if test="record.theoryTime != null" >
+        theory_time = #{record.theoryTime,jdbcType=INTEGER},
+      </if>
+      <if test="record.experTime != null" >
+        exper_time = #{record.experTime,jdbcType=INTEGER},
+      </if>
+      <if test="record.credit != null" >
+        credit = #{record.credit,jdbcType=DOUBLE},
+      </if>
+      <if test="record.type != null" >
+        type = #{record.type,jdbcType=VARCHAR},
+      </if>
+      <if test="record.property != null" >
+        property = #{record.property,jdbcType=VARCHAR},
+      </if>
+      <if test="record.version != null" >
+        version = #{record.version,jdbcType=CHAR},
+      </if>
+      <if test="record.teacherId != null" >
+        teacher_id = #{record.teacherId,jdbcType=INTEGER},
+      </if>
+    </set>
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map" >
+    update course
+    set id = #{record.id,jdbcType=INTEGER},
+      course_num = #{record.courseNum,jdbcType=CHAR},
+      name = #{record.name,jdbcType=VARCHAR},
+      theory_time = #{record.theoryTime,jdbcType=INTEGER},
+      exper_time = #{record.experTime,jdbcType=INTEGER},
+      credit = #{record.credit,jdbcType=DOUBLE},
+      type = #{record.type,jdbcType=VARCHAR},
+      property = #{record.property,jdbcType=VARCHAR},
+      version = #{record.version,jdbcType=CHAR},
+      teacher_id = #{record.teacherId,jdbcType=INTEGER}
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.course.authentication.pojo.Course" >
+    update course
+    <set >
+      <if test="courseNum != null" >
+        course_num = #{courseNum,jdbcType=CHAR},
+      </if>
+      <if test="name != null" >
+        name = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="theoryTime != null" >
+        theory_time = #{theoryTime,jdbcType=INTEGER},
+      </if>
+      <if test="experTime != null" >
+        exper_time = #{experTime,jdbcType=INTEGER},
+      </if>
+      <if test="credit != null" >
+        credit = #{credit,jdbcType=DOUBLE},
+      </if>
+      <if test="type != null" >
+        type = #{type,jdbcType=VARCHAR},
+      </if>
+      <if test="property != null" >
+        property = #{property,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null" >
+        version = #{version,jdbcType=CHAR},
+      </if>
+      <if test="teacherId != null" >
+        teacher_id = #{teacherId,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.course.authentication.pojo.Course" >
+    update course
+    set course_num = #{courseNum,jdbcType=CHAR},
+      name = #{name,jdbcType=VARCHAR},
+      theory_time = #{theoryTime,jdbcType=INTEGER},
+      exper_time = #{experTime,jdbcType=INTEGER},
+      credit = #{credit,jdbcType=DOUBLE},
+      type = #{type,jdbcType=VARCHAR},
+      property = #{property,jdbcType=VARCHAR},
+      version = #{version,jdbcType=CHAR},
+      teacher_id = #{teacherId,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
